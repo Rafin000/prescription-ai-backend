@@ -13,6 +13,11 @@ import { DoctorsService } from './doctors.service';
 import { DoctorsRepository } from './doctors.repository';
 import { FilterDoctorsDto } from './dtos/filter-doctors.dto';
 import { CurrentUser, AuthedUser } from 'src/decorators/current-user.decorator';
+import { UsersRepository } from 'src/modules/users/users.repository';
+import { TeamsRepository } from 'src/modules/teams/teams.repository';
+import { SubscriptionsRepository } from 'src/modules/subscriptions/subscriptions.repository';
+import { toMeResource } from 'src/modules/auth/transformers/me.resource';
+import { ROLES } from 'src/base/base.constants';
 
 const PHONE_REGEX = /^\+?[0-9\s\-()]{6,20}$/;
 
@@ -51,13 +56,14 @@ export class DoctorController {
   constructor(
     private readonly svc: DoctorsService,
     private readonly repo: DoctorsRepository,
+    private readonly users: UsersRepository,
+    private readonly teams: TeamsRepository,
+    private readonly subs: SubscriptionsRepository,
   ) {}
 
   @Get('me')
   async me(@CurrentUser() u: AuthedUser) {
-    const row = await this.repo.findByUserId(u.userId);
-    if (!row) return null;
-    return this.svc.getById(row.id);
+    return this.composeMe(u);
   }
 
   @Patch('me')
@@ -76,7 +82,7 @@ export class DoctorController {
         signature_url: dto.signatureUrl ?? undefined,
       },
     });
-    return this.svc.getById(row.id);
+    return this.composeMe(u);
   }
 
   /** Availability lives in doctors.data.availability — opaque jsonb. */
@@ -85,5 +91,24 @@ export class DoctorController {
     const row = await this.repo.findByUserId(u.userId);
     const avail = (row?.data as { availability?: unknown } | undefined)?.availability;
     return avail ?? { inPerson: {}, video: [] };
+  }
+
+  /** Build the rich dashboard-shaped Doctor resource from the current
+   *  user's row + membership + subscription. Mirrors AuthService.me(). */
+  private async composeMe(u: AuthedUser) {
+    const user = await this.users.findById(u.userId);
+    if (!user) return null;
+    const membership = await this.teams.findMembership({ userId: u.userId });
+    const doctor = await this.repo.findByUserId(u.userId);
+    if (!doctor) return null;
+    const subscription = await this.subs.ensureFor(u.teamId);
+    const rich = await this.repo.getRichRowById(u.teamId, doctor.id);
+    return toMeResource({
+      user,
+      doctor: rich,
+      role: membership?.role ?? u.role,
+      isOwner: (membership?.role ?? u.role) === ROLES.OWNER,
+      subscription,
+    });
   }
 }
