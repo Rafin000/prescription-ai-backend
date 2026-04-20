@@ -163,6 +163,24 @@ export class DoctorsRepository extends BaseRepository {
     return r.rows[0];
   }
 
+  /**
+   * Mark a team's owning (oldest) doctor as fully onboarded. Used by webhook
+   * paths where we don't have a userId — just a team_id from an invoice row.
+   */
+  async markTeamOnboardingDone(teamId: string): Promise<void> {
+    const client = await this.getClient();
+    await client.query(
+      `UPDATE doctors
+          SET onboarding_step = 'done',
+              onboarding_complete = true,
+              status = 'active',
+              updated_at = now()
+        WHERE team_id = $1
+          AND id = (SELECT id FROM doctors WHERE team_id = $1 ORDER BY created_at LIMIT 1)`,
+      [teamId],
+    );
+  }
+
   async setOnboardingStep(
     teamId: string,
     doctorId: string,

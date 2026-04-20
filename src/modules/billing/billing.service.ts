@@ -149,6 +149,16 @@ export class BillingService {
       method: result.method,
       method_hint: result.methodHint,
     });
+
+    // Advance the onboarding cursor — payment is the last gated step, so a
+    // successful verify also means "onboarding is done". Best-effort: if the
+    // user is in a later step already (re-purchasing after cancel) we still
+    // want the column flipped so OnboardingGate doesn't bounce them.
+    const doctor = await this.doctors.findByUserId(userId);
+    if (doctor && doctor.team_id === teamId) {
+      await this.doctors.setOnboardingStep(teamId, doctor.id, 'done', true);
+    }
+
     const me = await this.compose(teamId, userId);
 
     // Receipt email + in-app bell.
@@ -238,6 +248,9 @@ export class BillingService {
         method: result.method,
         method_hint: result.methodHint,
       });
+      // Advance onboarding for the team's owning doctor — same rationale as
+      // in verify(). teamId is known here via the invoice row.
+      await this.doctors.markTeamOnboardingDone(row.team_id);
     } else if (!result.valid) {
       await this.invoices.setStatusByTranId(payload.tran_id, 'failed');
     }
