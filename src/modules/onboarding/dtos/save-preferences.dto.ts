@@ -1,4 +1,15 @@
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsIn,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 export class SavePreferencesDto {
   @IsOptional() @IsIn(['bn', 'en', 'bilingual'])
@@ -12,5 +23,8 @@ export class SavePreferencesDto {
 }
 
 export class SavePreferencesBody {
+  @IsObject()
+  @ValidateNested()
+  @Type(() => SavePreferencesDto)
   preferences!: SavePreferencesDto;
 }

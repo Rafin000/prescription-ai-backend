@@ -31,7 +31,7 @@ export class OnboardingRepository extends BaseRepository {
         input.teamId,
         input.doctorId,
         input.step,
-        JSON.stringify(input.payload),
+        JSON.stringify(input.payload ?? {}),
         input.completed,
       ],
     );

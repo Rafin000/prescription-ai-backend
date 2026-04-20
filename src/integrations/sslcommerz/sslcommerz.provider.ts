@@ -45,12 +45,22 @@ export class SslCommerzProvider {
   async initSession(input: InitSessionInput): Promise<InitSessionResult> {
     const storeId = this.config.get<string>('SSLCOMMERZ_STORE_ID');
     if (!storeId) {
-      // Dev stub — point the gateway URL at our /public/mock-checkout page
-      // so the SPA redirect flow can round-trip without leaving localhost.
-      const baseUrl = this.config.get<string>('PUBLIC_BASE_URL') ?? 'http://localhost:4000';
-      const gatewayUrl = `${baseUrl}/api/public/mock-sslcz/checkout?tran_id=${encodeURIComponent(input.tranId)}`;
+      // Dev stub — the mock page renders a Pay / Fail / Cancel picker that
+      // redirects back to the dashboard's callback URLs with tran_id appended,
+      // exactly like the real SSLCommerz hosted page does.
+      const baseUrl =
+        this.config.get<string>('PUBLIC_BASE_URL') ?? 'http://localhost:4000';
+      const params = new URLSearchParams({
+        tran_id: input.tranId,
+        amount: String(input.amountBdt),
+        product: input.productName,
+        success_url: input.successUrl,
+        fail_url: input.failUrl,
+        cancel_url: input.cancelUrl,
+      });
+      const gatewayUrl = `${baseUrl}/api/public/mock-sslcz/checkout?${params}`;
       const sessionKey = `stub-${randomUUID()}`;
-      this.log.debug(`[stub] init session ${input.tranId} → ${gatewayUrl}`);
+      this.log.debug(`[stub] init session ${input.tranId}`);
       return { gatewayUrl, sessionKey };
     }
     // Real-sandbox path is a TODO — pattern is a POST to
