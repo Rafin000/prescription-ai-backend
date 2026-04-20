@@ -13,6 +13,8 @@ import { UsersRepository } from 'src/modules/users/users.repository';
 import { TeamsRepository } from 'src/modules/teams/teams.repository';
 import { DoctorsRepository } from 'src/modules/doctors/doctors.repository';
 import { SubscriptionsRepository } from 'src/modules/subscriptions/subscriptions.repository';
+import { OtpService } from 'src/modules/otp/otp.service';
+import { parseBdPhone } from 'src/shared/utils/bd-phone';
 import { SignupDto } from './dtos/signup.dto';
 import { LoginDto } from './dtos/login.dto';
 import { MeResource, toMeResource } from './transformers/me.resource';
@@ -26,6 +28,7 @@ export class AuthService {
     private readonly teams: TeamsRepository,
     private readonly doctors: DoctorsRepository,
     private readonly subs: SubscriptionsRepository,
+    private readonly otp: OtpService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -37,12 +40,28 @@ export class AuthService {
     const existing = await this.users.findByEmail(dto.email);
     if (existing) throw new ConflictException('Email already registered');
 
+    // If the signup carries a phoneOtpToken, it must have been issued for the
+    // SAME phone the user typed in. Invalid/mismatched tokens fail fast.
+    let phoneVerified = false;
+    let phoneE164 = dto.phone;
+    if (dto.phoneOtpToken) {
+      const claims = this.otp.verifyToken(dto.phoneOtpToken);
+      if (!claims) throw new BadRequestException('Phone verification expired');
+      const provided = dto.phone ? parseBdPhone(dto.phone) : null;
+      if (!provided || provided.e164 !== claims.phone) {
+        throw new BadRequestException('Phone did not match the verification code');
+      }
+      phoneVerified = true;
+      phoneE164 = provided.e164;
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.users.create({
       email: dto.email,
       passwordHash,
       name: dto.name,
-      phone: dto.phone,
+      phone: phoneE164,
+      phoneVerified,
     });
 
     const team = await this.teams.create({

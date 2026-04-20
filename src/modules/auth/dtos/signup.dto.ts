@@ -32,4 +32,9 @@ export class SignupDto {
 
   @IsOptional() @IsString() @MaxLength(80)
   teamName?: string;
+
+  /** Short-lived phone-verified JWT returned by /auth/otp/verify. When
+   *  present and valid for the same phone, users.phone_verified = true. */
+  @IsOptional() @IsString() @MaxLength(500)
+  phoneOtpToken?: string;
 }

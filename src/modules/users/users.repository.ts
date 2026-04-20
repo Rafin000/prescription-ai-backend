@@ -50,15 +50,18 @@ export class UsersRepository extends BaseRepository {
     passwordHash: string;
     name: string;
     phone?: string;
+    phoneVerified?: boolean;
   }): Promise<UserRow> {
     const client = await this.getClient();
     const r = await client.query<UserRow>(
-      `INSERT INTO users (email, password_hash, status, data)
-       VALUES ($1, $2, 'active', $3::jsonb)
+      `INSERT INTO users
+         (email, password_hash, status, phone_verified, phone_verified_at, data)
+       VALUES ($1, $2, 'active', $3, CASE WHEN $3 THEN now() ELSE NULL END, $4::jsonb)
        RETURNING *`,
       [
         input.email.toLowerCase(),
         input.passwordHash,
+        !!input.phoneVerified,
         JSON.stringify({ name: input.name, phone: input.phone ?? null }),
       ],
     );
