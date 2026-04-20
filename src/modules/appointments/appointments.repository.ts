@@ -47,6 +47,18 @@ export class AppointmentsRepository extends BaseRepository {
     return r.rows[0] ?? null;
   }
 
+  /** Public guest lookup — token is the capability, no team scope. */
+  async findByJoinToken(token: string): Promise<AppointmentRow | null> {
+    const client = await this.getClient();
+    const r = await client.query<AppointmentRow>(
+      `SELECT * FROM appointments
+        WHERE type = 'tele' AND data->>'join_token' = $1
+        LIMIT 1`,
+      [token],
+    );
+    return r.rows[0] ?? null;
+  }
+
   async getByIdOrThrow(teamId: string, id: string): Promise<AppointmentResource> {
     const row = await this.getById(teamId, id);
     if (!row) throw new NotFoundException('Appointment not found');

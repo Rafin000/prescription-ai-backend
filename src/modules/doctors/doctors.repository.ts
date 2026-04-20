@@ -84,6 +84,17 @@ export class DoctorsRepository extends BaseRepository {
     return r.rows[0] ?? null;
   }
 
+  /** Team-agnostic lookup. Sparingly — for public webhooks + IPN flows where
+   *  teamId isn't known upfront. Authed paths always use findRowById. */
+  async findAnyById(id: string): Promise<DoctorRow | null> {
+    const client = await this.getClient();
+    const r = await client.query<DoctorRow>(
+      `SELECT * FROM doctors WHERE id = $1 LIMIT 1`,
+      [id],
+    );
+    return r.rows[0] ?? null;
+  }
+
   async createForSignup(input: {
     teamId: string;
     userId: string;

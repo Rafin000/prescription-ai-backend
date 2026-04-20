@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
@@ -15,6 +16,16 @@ async function bootstrap() {
 
   app.useLogger(app.get(PinoLogger));
 
+  app.use(
+    helmet({
+      // We're an API behind Cloudflare/ALB in prod; the CSP is set by the
+      // SPAs themselves. Disable helmet's CSP here to avoid double-headers.
+      contentSecurityPolicy: false,
+      // cross-origin-resource-policy blocks cross-origin embeds of our
+      // responses by default. Fine for an API — SPAs set their own.
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(cookieParser());
   app.set('trust proxy', 1);
 

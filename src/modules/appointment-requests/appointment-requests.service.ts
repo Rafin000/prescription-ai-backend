@@ -8,6 +8,7 @@ import { CreateAppointmentRequestDto } from './dtos/create-appointment-request.d
 import { ConfirmRequestDto, DeclineRequestDto } from './dtos/confirm-request.dto';
 import { DoctorsRepository } from 'src/modules/doctors/doctors.repository';
 import { AppointmentsRepository } from 'src/modules/appointments/appointments.repository';
+import { NotificationsService } from 'src/modules/notifications/notifications.service';
 
 @Injectable()
 export class AppointmentRequestsService {
@@ -15,10 +16,27 @@ export class AppointmentRequestsService {
     private readonly repo: AppointmentRequestsRepository,
     private readonly doctors: DoctorsRepository,
     private readonly appts: AppointmentsRepository,
+    private readonly notifs: NotificationsService,
   ) {}
 
-  create(dto: CreateAppointmentRequestDto) {
-    return this.repo.create(dto);
+  async create(dto: CreateAppointmentRequestDto) {
+    const created = await this.repo.create(dto);
+    // Notify the doctor that a new request landed. Team-agnostic lookup
+    // because this route is public and we don't have a team scope.
+    const docRow = await this.doctors.findAnyById(dto.doctorId);
+    if (docRow?.user_id) {
+      await this.notifs.safeSendInApp({
+        teamId: docRow.team_id,
+        userId: docRow.user_id,
+        kind: 'appointment-request.received',
+        title: 'New appointment request',
+        body: `${created.patientName} wants to book a visit`,
+        href: '/appointments/inbox',
+        severity: 'info',
+        dedupeKey: `apptreq-received:${created.id}`,
+      });
+    }
+    return created;
   }
 
   async listForDoctor(teamId: string, userId: string, status?: string) {
@@ -29,13 +47,6 @@ export class AppointmentRequestsService {
     return this.repo.listForDoctor(doctor.id, status);
   }
 
-  /**
-   * Confirm: create a real Appointment (with patient_draft from the request),
-   * mark the request confirmed, and return both.
-   *
-   * SMS notification is enqueued later (slice 9 — notifications). For now
-   * we just return the appointment.
-   */
   async confirm(
     teamId: string,
     userId: string,
@@ -83,6 +94,30 @@ export class AppointmentRequestsService {
       confirmed_at: new Date().toISOString(),
     });
 
+    // Fan out — SMS to patient, in-app to doctor for their own calendar awareness.
+    const when = start.toLocaleString('en-GB', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'Asia/Dhaka',
+    });
+    await this.notifs.safeSendSms({
+      teamId,
+      kind: 'appointment.confirmed',
+      to: req.phone,
+      body: `Prescription AI: Your appointment with ${doctor.name} is confirmed for ${when}. Reply CANCEL to cancel.`,
+      dedupeKey: `appt-confirmed-sms:${appt.id}`,
+    });
+    await this.notifs.safeSendInApp({
+      teamId,
+      userId,
+      kind: 'appointment.confirmed',
+      title: 'Appointment confirmed',
+      body: `${req.data?.patient_name ?? 'Patient'} · ${when}`,
+      href: '/appointments',
+      severity: 'success',
+      dedupeKey: `appt-confirmed-inapp:${appt.id}`,
+    });
+
     return { request: updated, appointment: appt };
   }
 
@@ -105,4 +140,5 @@ export class AppointmentRequestsService {
       declined_at: new Date().toISOString(),
     });
   }
+
 }

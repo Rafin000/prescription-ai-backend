@@ -41,6 +41,30 @@ export class SubscriptionsRepository extends BaseRepository {
     return r.rows[0];
   }
 
+  async markCancelAt(teamId: string, cancelAt: Date): Promise<SubscriptionRow> {
+    const client = await this.getClient();
+    const r = await client.query<SubscriptionRow>(
+      `UPDATE subscriptions
+          SET data = data || $2::jsonb, updated_at = now()
+        WHERE team_id = $1
+        RETURNING *`,
+      [teamId, JSON.stringify({ cancel_at: cancelAt.toISOString() })],
+    );
+    return r.rows[0];
+  }
+
+  async clearCancelAt(teamId: string): Promise<SubscriptionRow> {
+    const client = await this.getClient();
+    const r = await client.query<SubscriptionRow>(
+      `UPDATE subscriptions
+          SET data = data - 'cancel_at', updated_at = now()
+        WHERE team_id = $1
+        RETURNING *`,
+      [teamId],
+    );
+    return r.rows[0];
+  }
+
   async recordCheckout(
     teamId: string,
     planId: 'starter' | 'pro' | 'clinic',

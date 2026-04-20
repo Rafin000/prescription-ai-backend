@@ -43,6 +43,7 @@
     "cookie-parser": "^1.4.7",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
+    "helmet": "^8.1.0",
     "ioredis": "^5.4.1",
     "nestjs-cls": "^4.5.0",
     "nestjs-pino": "^4.1.0",
@@ -84,11 +85,19 @@
     "typescript": "^5.6.0"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "transform": { "^.+\\.(t|j)s$": "ts-jest" },
-    "collectCoverageFrom": ["**/*.(t|j)s"],
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }

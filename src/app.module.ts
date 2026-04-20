@@ -23,7 +23,17 @@ import { AppointmentsModule } from 'src/modules/appointments/appointments.module
 import { ConsultsModule } from 'src/modules/consults/consults.module';
 import { PrescriptionsModule } from 'src/modules/prescriptions/prescriptions.module';
 import { VisitsModule } from 'src/modules/visits/visits.module';
+import { InvoicesModule } from 'src/modules/invoices/invoices.module';
+import { UsageModule } from 'src/modules/usage/usage.module';
+import { BillingModule } from 'src/modules/billing/billing.module';
+import { SslCommerzModule } from 'src/integrations/sslcommerz/sslcommerz.module';
+import { VideoModule } from 'src/modules/video/video.module';
+import { InvitesModule } from 'src/modules/invites/invites.module';
+import { NotificationsModule } from 'src/modules/notifications/notifications.module';
+import { AuditModule } from 'src/modules/audit/audit.module';
+import { RetentionModule } from 'src/modules/retention/retention.module';
 import { PoolClientInterceptor } from 'src/interceptors/pool-client.interceptor';
+import { AuditInterceptor } from 'src/interceptors/audit.interceptor';
 import { HttpExceptionFilter } from 'src/filters/http-exception.filter';
 import { JwtGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
@@ -68,12 +78,22 @@ import { runMigrations } from 'src/scripts/migrate';
     ConsultsModule,
     PrescriptionsModule,
     VisitsModule,
+    InvoicesModule,
+    UsageModule,
+    SslCommerzModule,
+    BillingModule,
+    VideoModule,
+    NotificationsModule,
+    InvitesModule,
+    AuditModule,
+    RetentionModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: PoolClientInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],
 })

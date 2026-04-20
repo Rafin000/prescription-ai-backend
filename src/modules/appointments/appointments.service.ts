@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { DoctorsRepository } from 'src/modules/doctors/doctors.repository';
 import { PatientsRepository } from 'src/modules/patients/patients.repository';
 import { PatientsService } from 'src/modules/patients/patients.service';
@@ -71,6 +72,9 @@ export class AppointmentsService {
               blood_group: dto.patientDraft.bloodGroup,
             }
           : null,
+        // Mint a one-shot, URL-safe token so the patient can join the tele
+        // call via /join/:token without an account.
+        join_token: dto.type === 'tele' ? randomBytes(18).toString('base64url') : null,
       },
     });
   }

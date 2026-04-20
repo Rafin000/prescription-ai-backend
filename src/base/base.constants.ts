@@ -4,11 +4,11 @@ export const CLS_REQUEST_ID = 'request.id';
 export const CLS_USER_ID = 'user.id';
 export const CLS_TEAM_ID = 'team.id';
 
-/** Standard role names. Add, never rename. */
+/** Baked-in role names. Custom roles (any string) are allowed at runtime. */
 export const ROLES = {
-  OWNER: 'owner',
+  OWNER: 'admin',          // workspace owner
   DOCTOR: 'doctor',
   ASSISTANT: 'assistant',
   RECEPTIONIST: 'receptionist',
 } as const;
-export type Role = (typeof ROLES)[keyof typeof ROLES];
+export type Role = string;
