@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { DoctorsController } from './doctors.controller';
+import { DoctorController, PublicDoctorsController } from './doctors.controller';
 import { DoctorsRepository } from './doctors.repository';
 import { DoctorsService } from './doctors.service';
 
 @Module({
-  controllers: [DoctorsController],
+  controllers: [PublicDoctorsController, DoctorController],
   providers: [DoctorsService, DoctorsRepository],
   exports: [DoctorsService, DoctorsRepository],
 })

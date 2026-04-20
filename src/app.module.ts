@@ -34,6 +34,8 @@ import { AuditModule } from 'src/modules/audit/audit.module';
 import { RetentionModule } from 'src/modules/retention/retention.module';
 import { RedisModule } from 'src/modules/redis/redis.module';
 import { OtpModule } from 'src/modules/otp/otp.module';
+import { MedicinesModule } from 'src/modules/medicines/medicines.module';
+import { LabIntakesModule } from 'src/modules/lab-intakes/lab-intakes.module';
 import { PoolClientInterceptor } from 'src/interceptors/pool-client.interceptor';
 import { AuditInterceptor } from 'src/interceptors/audit.interceptor';
 import { HttpExceptionFilter } from 'src/filters/http-exception.filter';
@@ -91,6 +93,8 @@ import { runMigrations } from 'src/scripts/migrate';
     RetentionModule,
     RedisModule,
     OtpModule,
+    MedicinesModule,
+    LabIntakesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtGuard },
