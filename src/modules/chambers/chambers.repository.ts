@@ -26,11 +26,81 @@ export class ChambersRepository extends BaseRepository {
     const client = await this.getClient();
     const r = await client.query<ChamberRow>(
       `SELECT * FROM chambers
-        WHERE team_id = $1 AND doctor_id = $2
+        WHERE team_id = $1 AND doctor_id = $2 AND status = 'active'
         ORDER BY created_at`,
       [teamId, doctorId],
     );
     return r.rows;
+  }
+
+  async createForDoctor(
+    teamId: string,
+    doctorId: string,
+    c: UpsertChamberInput,
+  ): Promise<ChamberRow> {
+    const client = await this.getClient();
+    const r = await client.query<ChamberRow>(
+      `INSERT INTO chambers (team_id, doctor_id, lat, lng, area, status, data)
+       VALUES ($1, $2, $3, $4, $5, 'active', $6::jsonb)
+       RETURNING *`,
+      [
+        teamId,
+        doctorId,
+        c.lat ?? null,
+        c.lng ?? null,
+        c.area ?? null,
+        JSON.stringify({
+          name: c.name,
+          address: c.address,
+          phone: c.phone ?? null,
+          time_label: c.timeLabel ?? null,
+          city: c.city ?? null,
+        }),
+      ],
+    );
+    return r.rows[0];
+  }
+
+  async updateOne(
+    teamId: string,
+    id: string,
+    c: UpsertChamberInput,
+  ): Promise<ChamberRow | null> {
+    const client = await this.getClient();
+    const r = await client.query<ChamberRow>(
+      `UPDATE chambers SET
+         lat = COALESCE($3, lat),
+         lng = COALESCE($4, lng),
+         area = COALESCE($5, area),
+         data = data || $6::jsonb,
+         updated_at = now()
+       WHERE id = $1 AND team_id = $2
+       RETURNING *`,
+      [
+        id,
+        teamId,
+        c.lat ?? null,
+        c.lng ?? null,
+        c.area ?? null,
+        JSON.stringify({
+          name: c.name,
+          address: c.address,
+          phone: c.phone ?? null,
+          time_label: c.timeLabel ?? null,
+          city: c.city ?? null,
+        }),
+      ],
+    );
+    return r.rows[0] ?? null;
+  }
+
+  async archive(teamId: string, id: string): Promise<void> {
+    const client = await this.getClient();
+    await client.query(
+      `UPDATE chambers SET status = 'archived', updated_at = now()
+        WHERE team_id = $1 AND id = $2`,
+      [teamId, id],
+    );
   }
 
   /**
